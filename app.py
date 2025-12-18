@@ -348,9 +348,14 @@ def main():
             
             st.subheader("Strategy vs Buy & Hold")
             
-            # Simulated portfolio value for visualization
+            # NOTE: This is simulated data for demonstration purposes
+            # In production, this should load actual backtest results from the pipeline
+            st.warning("⚠️ Portfolio visualization uses simulated data for demonstration. Run pipeline.py to generate actual backtest results.")
+            
+            # Simulated portfolio value for visualization demo
             dates = data.index[-252:]  # Last year
             initial_value = 100000
+            # Generate random walk for demonstration (replace with actual backtest results)
             strategy_values = initial_value * (1 + np.cumsum(np.random.randn(len(dates)) * 0.01))
             buy_hold_values = initial_value * (data['Close'][-252:] / data['Close'].iloc[-252])
             

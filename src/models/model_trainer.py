@@ -242,6 +242,8 @@ class ModelTrainer:
         """
         X_seq, y_seq = [], []
         
+        # For each valid starting position, create a sequence
+        # Last valid i: len(X) - sequence_length - 1, which gives y[len(X) - 1] (last element)
         for i in range(len(X) - sequence_length):
             X_seq.append(X[i:i + sequence_length])
             y_seq.append(y[i + sequence_length])
