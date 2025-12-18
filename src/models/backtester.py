@@ -106,11 +106,14 @@ class PortfolioBacktester:
             'max_drawdown': self.portfolio.max_drawdown(),
             'win_rate': self.portfolio.trades.win_rate(),
             'total_trades': self.portfolio.trades.count(),
-            'avg_winning_trade': self.portfolio.trades.winning.avg_return() if self.portfolio.trades.winning.count() > 0 else 0,
-            'avg_losing_trade': self.portfolio.trades.losing.avg_return() if self.portfolio.trades.losing.count() > 0 else 0,
             'final_value': self.portfolio.final_value(),
-            'profit_factor': self.portfolio.trades.profit_factor() if hasattr(self.portfolio.trades, 'profit_factor') else 0
         }
+        
+        # Try to get profit factor if available
+        try:
+            metrics['profit_factor'] = self.portfolio.trades.profit_factor()
+        except:
+            metrics['profit_factor'] = 0
         
         logger.info("Performance Metrics:")
         for key, value in metrics.items():
