@@ -1,0 +1,72 @@
+# Test Configuration for quick validation
+
+# Data Collection Settings
+data:
+  # Stock symbols to analyze
+  symbols:
+    - AAPL
+  # Date range (shorter for testing)
+  start_date: "2023-01-01"
+  end_date: "2024-12-31"
+  # Data interval (1d, 1wk, 1mo)
+  interval: "1d"
+
+# Feature Engineering Settings
+features:
+  # Technical indicators to calculate
+  indicators:
+    - SMA_20
+    - SMA_50
+    - RSI
+    - MACD
+    - BB_upper
+    - BB_lower
+  # Lookback period for features
+  lookback_period: 60
+
+# Model Training Settings
+models:
+  # Models to train and compare (reduced for testing)
+  algorithms:
+    - random_forest
+    - xgboost
+  
+  # Train-test split ratio
+  test_size: 0.2
+  
+  # Random Forest parameters
+  random_forest:
+    n_estimators: 50
+    max_depth: 8
+    random_state: 42
+  
+  # XGBoost parameters
+  xgboost:
+    n_estimators: 50
+    max_depth: 5
+    learning_rate: 0.1
+    random_state: 42
+  
+  # LSTM parameters (not used in test)
+  lstm:
+    epochs: 10
+    batch_size: 32
+    units: 50
+    dropout: 0.2
+
+# Trading Strategy Settings
+strategy:
+  # Buy/Sell/Hold thresholds
+  buy_threshold: 0.6
+  sell_threshold: 0.4
+  # Initial capital
+  initial_capital: 100000
+  # Commission rate
+  commission: 0.001
+
+# Backtesting Settings
+backtest:
+  # Portfolio settings
+  freq: "1D"
+  # Risk metrics
+  risk_free_rate: 0.02
