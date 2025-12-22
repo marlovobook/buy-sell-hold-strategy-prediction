@@ -42,7 +42,7 @@ class PortfolioBacktester:
         Returns:
             DataFrame with entry and exit signals
         """
-        signals_df = df[['Close']].copy()
+        signals_df = df[['close']].copy()
         
         # Convert predictions to signals
         # 2 = Buy, 0 = Sell, 1 = Hold

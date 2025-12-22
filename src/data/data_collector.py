@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 from typing import List, Dict
 import logging
+import pandas_ta as ta
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -74,37 +75,72 @@ class DataCollector:
         """
         data = df.copy()
         
-        # Simple Moving Averages
-        data['SMA_20'] = data['Close'].rolling(window=20).mean()
-        data['SMA_50'] = data['Close'].rolling(window=50).mean()
         
-        # Relative Strength Index (RSI)
-        delta = data['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
-        data['RSI'] = 100 - (100 / (1 + rs))
         
-        # MACD
-        exp1 = data['Close'].ewm(span=12, adjust=False).mean()
-        exp2 = data['Close'].ewm(span=26, adjust=False).mean()
-        data['MACD'] = exp1 - exp2
-        data['MACD_Signal'] = data['MACD'].ewm(span=9, adjust=False).mean()
+        # TradingView Technical Indicators using pandas_ta --#
+        data.ta.sma(length=20, append=True)
+        data.ta.sma(length=50, append=True)
+        data.ta.rsi(length=14, append=True)
+        data.ta.macd(append=True)
+        data.ta.bbands(append=True)
+        data.ta.vwap(append=True)
         
-        # Bollinger Bands
-        data['BB_Middle'] = data['Close'].rolling(window=20).mean()
-        bb_std = data['Close'].rolling(window=20).std()
-        data['BB_Upper'] = data['BB_Middle'] + (bb_std * 2)
-        data['BB_Lower'] = data['BB_Middle'] - (bb_std * 2)
+        data.ta.roc(length=1, append=True)
+        data.ta.atr(length=14, append=True)
+        data.ta.tsi(append=True)
+        data.ta.adx(append=True)
+        data.ta.cci(length=20, append=True)
+        #-----------------------------------------------#
         
-        # Volume indicators
-        data['Volume_SMA'] = data['Volume'].rolling(window=20).mean()
+        # Calculate fibonacci retracement levels (52-week rolling window)
+        window = 252  # Approximate trading days in 52 weeks (252 trading days/year)
+        data['Rolling_High_52w'] = data['High'].rolling(window=window, min_periods=1).max()
+        data['Rolling_Low_52w'] = data['Low'].rolling(window=window, min_periods=1).min()
+        diff = data['Rolling_High_52w'] - data['Rolling_Low_52w']
         
-        # Price change percentage
-        data['Price_Change'] = data['Close'].pct_change()
+        data['Fibo_23.6'] = data['Rolling_High_52w'] - 0.236 * diff
+        data['Fibo_38.2'] = data['Rolling_High_52w'] - 0.382 * diff
+        data['Fibo_50.0'] = data['Rolling_High_52w'] - 0.5 * diff
+        data['Fibo_61.8'] = data['Rolling_High_52w'] - 0.618 * diff
+        data['Fibo_78.6'] = data['Rolling_High_52w'] - 0.786 * diff
+        data['Fibo_100.0'] = data['Rolling_Low_52w']
+        data['Fibo_161.8'] = data['Rolling_High_52w'] - 1.618 * diff
         
-        # Volatility
-        data['Volatility'] = data['Price_Change'].rolling(window=20).std()
+        
+        #--------------------------
+        # # Simple Moving Averages
+        # data['SMA_20'] = data['Close'].rolling(window=20).mean()
+        # data['SMA_50'] = data['Close'].rolling(window=50).mean()
+        
+        # # Relative Strength Index (RSI)
+        # delta = data['Close'].diff()
+        # gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        # loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        # rs = gain / loss
+        # data['RSI'] = 100 - (100 / (1 + rs))
+        
+        # # MACD
+        # exp1 = data['Close'].ewm(span=12, adjust=False).mean()
+        # exp2 = data['Close'].ewm(span=26, adjust=False).mean()
+        # data['MACD'] = exp1 - exp2
+        # data['MACD_Signal'] = data['MACD'].ewm(span=9, adjust=False).mean()
+        
+        # # Bollinger Bands
+        # data['BB_Middle'] = data['Close'].rolling(window=20).mean()
+        # bb_std = data['Close'].rolling(window=20).std()
+        # data['BB_Upper'] = data['BB_Middle'] + (bb_std * 2)
+        # data['BB_Lower'] = data['BB_Middle'] - (bb_std * 2)
+        
+        # # Volume indicators
+        # data['Volume_SMA'] = data['Volume'].rolling(window=20).mean()
+        
+        # # Price change percentage
+        # data['Price_Change'] = data['Close'].pct_change()
+        
+        # # Volatility
+        # data['Volatility'] = data['Price_Change'].rolling(window=20).std()
+        
+        
         
         return data
     
@@ -122,6 +158,10 @@ class DataCollector:
         data = df.copy()
         
         # Calculate future returns
+        # Explain how future returns are calculated and what it means
+        """
+        Future_Return = (Price at day t + horizon - Price at day t) / Price at day t
+        This gives the percentage change in price over the next 'horizon' days."""
         data['Future_Return'] = data['Close'].pct_change(horizon).shift(-horizon)
         
         # Create labels: Buy (2), Hold (1), Sell (0)
@@ -154,6 +194,9 @@ class DataCollector:
         
         # Drop rows with NaN values
         df = df.dropna()
+        
+        # .lower all column names
+        df.columns = [col.lower() for col in df.columns]
         
         logger.info(f"Prepared {len(df)} records for {symbol}")
         return df

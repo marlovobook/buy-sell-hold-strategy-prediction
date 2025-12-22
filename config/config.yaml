@@ -74,3 +74,179 @@ backtest:
   freq: "1D"
   # Risk metrics
   risk_free_rate: 0.02
+
+# Reinforcement Learning Settings
+reinforcement_learning:
+  # RL algorithms to train
+  algorithms:
+    - ppo
+    - a2c
+    - ddpg
+    - td3
+    - sac
+  
+  # Environment settings
+  environment:
+    initial_balance: 10000
+    commission: 0.001
+    lookback_window: 30
+    reward_function: "sharpe"  # Options: profit, sharpe, sortino, cvar, max_drawdown
+  
+  # PPO (Proximal Policy Optimization) parameters
+  ppo:
+    total_timesteps: 200000
+    learning_rate: 0.0003
+    n_steps: 2048
+    batch_size: 64
+    gamma: 0.99
+  
+  # A2C (Advantage Actor-Critic) parameters
+  a2c:
+    total_timesteps: 200000
+    learning_rate: 0.0007
+    n_steps: 5
+    gamma: 0.99
+  
+  # DDPG (Deep Deterministic Policy Gradient) parameters
+  ddpg:
+    total_timesteps: 200000
+    learning_rate: 0.001
+    buffer_size: 100000
+    batch_size: 100
+    gamma: 0.99
+  
+  # TD3 (Twin Delayed DDPG) parameters
+  td3:
+    total_timesteps: 200000
+    learning_rate: 0.001
+    buffer_size: 100000
+    batch_size: 100
+    gamma: 0.99
+  
+  # SAC (Soft Actor-Critic) parameters
+  sac:
+    total_timesteps: 200000
+    learning_rate: 0.0003
+    buffer_size: 100000
+    batch_size: 256
+    gamma: 0.99
+  
+  # DQN (Deep Q-Network) parameters - requires discrete actions
+  dqn:
+    total_timesteps: 200000
+    learning_rate: 0.0001
+    buffer_size: 100000
+    batch_size: 32
+    gamma: 0.99
+  
+  # Test split ratio
+  test_size: 0.2
+
+# Time-series Forecasting Settings
+time_series:
+  # Algorithms to train
+  algorithms:
+    - prophet
+    - arima
+    - garch
+    - neuralprophet
+    - naive
+  
+  # Data frequency
+  freq: "D"
+  
+  # Test split ratio
+  test_size: 0.2
+  
+  # Prophet parameters
+  prophet:
+    seasonality_mode: "additive"
+    changepoint_prior_scale: 0.05
+    yearly_seasonality: true
+    weekly_seasonality: true
+    daily_seasonality: false
+  
+  # ARIMA parameters
+  arima:
+    order: [1, 1, 1]
+  
+  # GARCH parameters
+  garch:
+    p: 1
+    q: 1
+    dist: "normal"
+  
+  # NeuralProphet parameters
+  neuralprophet:
+    n_changepoints: 5
+    yearly_seasonality: true
+    weekly_seasonality: true
+    daily_seasonality: false
+
+# Deep Learning Time-series Settings
+deep_learning:
+  # Algorithms to train
+  algorithms:
+    - mlp
+    - lstm
+    - bilstm
+    - lstm_attention
+    - gru
+    - cnn_lstm
+    - stacked_lstm
+  
+  # Lookback window for sequences
+  lookback: 60
+  
+  # Test split ratio
+  test_size: 0.2
+  
+  # MLP parameters
+  mlp:
+    units: [128, 64, 32]
+    dropout: 0.2
+    epochs: 50
+    batch_size: 32
+  
+  # LSTM parameters
+  lstm:
+    units: 50
+    dropout: 0.2
+    epochs: 50
+    batch_size: 32
+  
+  # Bidirectional LSTM parameters
+  bilstm:
+    units: 50
+    dropout: 0.2
+    epochs: 50
+    batch_size: 32
+  
+  # LSTM with Attention parameters
+  lstm_attention:
+    units: 50
+    dropout: 0.2
+    epochs: 50
+    batch_size: 32
+  
+  # GRU parameters
+  gru:
+    units: 50
+    dropout: 0.2
+    epochs: 50
+    batch_size: 32
+  
+  # CNN-LSTM parameters
+  cnn_lstm:
+    cnn_filters: 32
+    lstm_units: 50
+    dropout: 0.2
+    epochs: 50
+    batch_size: 32
+  
+  # Stacked LSTM parameters
+  stacked_lstm:
+    units: [50, 50]
+    dropout: 0.2
+    epochs: 50
+    batch_size: 32
