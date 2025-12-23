@@ -210,5 +210,5 @@ class DataCollector:
         """
         for symbol, df in self.data.items():
             file_path = f"{filepath}/{symbol}.csv"
-            df.to_csv(file_path)
+            df.to_csv(file_path, index=True)
             logger.info(f"Saved data for {symbol} to {file_path}")

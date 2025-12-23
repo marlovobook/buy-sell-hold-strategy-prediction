@@ -87,57 +87,69 @@ reinforcement_learning:
   
   # Environment settings
   environment:
-    initial_balance: 10000
+    initial_balance: 100000
     commission: 0.001
-    lookback_window: 30
+    lookback_window: 60
     reward_function: "sharpe"  # Options: profit, sharpe, sortino, cvar, max_drawdown
   
   # PPO (Proximal Policy Optimization) parameters
   ppo:
     total_timesteps: 200000
-    learning_rate: 0.0003
+    learning_rate: 0.0002
     n_steps: 2048
-    batch_size: 64
+    batch_size: 128
     gamma: 0.99
+    gae_lambda: 0.95 # LOWERED: Focuses on shorter-term volatility (better for active trading)
+    ent_coef: 0.05 # INCREASED: Forces exploration (prevents getting stuck in Buy&Hold)
   
-  # A2C (Advantage Actor-Critic) parameters
+  # A2C (Advantage Actor-Critic) parameters (Faster, but often less stable than PPO)
   a2c:
     total_timesteps: 200000
-    learning_rate: 0.0007
-    n_steps: 5
+    learning_rate: 0.0003
+    n_steps: 20              # Increased: Allows looking further ahead before bootstrap
     gamma: 0.99
+    ent_coef: 0.01
+    max_grad_norm: 0.5       # Prevents exploding gradients
   
-  # DDPG (Deep Deterministic Policy Gradient) parameters
+  # DDPG (Deep Deterministic Policy Gradient) parameters (Hard to tune for stocks - prone to divergence)
   ddpg:
-    total_timesteps: 200000
-    learning_rate: 0.001
+    total_timesteps: 150000
+    learning_rate: 0.0001    # Needs to be very slow
     buffer_size: 100000
-    batch_size: 100
+    batch_size: 128
     gamma: 0.99
-  
-  # TD3 (Twin Delayed DDPG) parameters
+    tau: 0.005
+
+  # TD3 (Twin Delayed DDPG) parameters (Better version of DDPG)
   td3:
-    total_timesteps: 200000
-    learning_rate: 0.001
-    buffer_size: 100000
-    batch_size: 100
-    gamma: 0.99
-  
-  # SAC (Soft Actor-Critic) parameters
-  sac:
-    total_timesteps: 200000
+    total_timesteps: 150000
     learning_rate: 0.0003
     buffer_size: 100000
     batch_size: 256
     gamma: 0.99
+    tau: 0.005
+    policy_delay: 2          # Updates policy less frequently than Q-function (stability)
+  
+  # SAC (Soft Actor-Critic) parameters (Best Off-Policy Choice for Stocks)
+  sac:
+    total_timesteps: 150000
+    learning_rate: 0.0003
+    buffer_size: 100000
+    batch_size: 256          # SAC loves large batches
+    gamma: 0.99
+    tau: 0.005
+    ent_coef: "auto"         # Automatically adjusts exploration
   
   # DQN (Deep Q-Network) parameters - requires discrete actions
   dqn:
     total_timesteps: 200000
     learning_rate: 0.0001
     buffer_size: 100000
-    batch_size: 32
+    batch_size: 64
     gamma: 0.99
+    exploration_fraction: 0.3 # Spend first 30% of time exploring randomly
+    exploration_final_eps: 0.05
+    target_update_interval: 1000 # Stabilizes training
   
   # Test split ratio
   test_size: 0.2
