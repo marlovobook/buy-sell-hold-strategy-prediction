@@ -34,10 +34,9 @@ class TradingEnvRL(gym.Env):
         df: pd.DataFrame,
         initial_balance: float = 100000,
         commission: float = 0.001,
-        reward_scaling: float = 1e-4,
         lookback_window: int = 30,
-        max_steps: int = 1000, # Limit episode length for better learning
-        reward_func: str = "profit",  # Add this parameter
+        max_steps: int = 1000, 
+        reward_func: str = "profit",
         random_start: bool = True,
         start_index: Optional[int] = None,
     ):
@@ -46,92 +45,92 @@ class TradingEnvRL(gym.Env):
         self.df = df.reset_index(drop=True)
         self.initial_balance = initial_balance
         self.commission = commission
-        self.reward_scaling = reward_scaling
         self.lookback_window = lookback_window
         self.max_steps = max_steps
-        self.reward_func_name = reward_func  # Store reward function name
+        self.reward_func_name = reward_func
         self.random_start = random_start
         self.start_index = start_index
         
+        # --- 1. Data Setup (Fixed) ---
+        # We separate prices to prevent leakage:
+        # - prices_open: USED FOR TRADING (Execution at t+1 Open)
+        # - prices_close: USED FOR VALUATION (Mark-to-market at t Close)
+        self.prices_close = self.df["close"].values.astype(np.float32)
+        self.prices_open = self.df["open"].values.astype(np.float32) 
         
-        # Initialize tracking for reward calculations
-        self.returns_history = []
-        self.portfolio_values = []
+        # Filter features to ensure no leakage
+        exclude_cols = ["close", "date", "open", "high", "low", "volume", "adj close"]
+        leak_keywords = ['future', 'target', 'label', 'next']
+        self.feature_cols = [
+            col for col in self.df.columns 
+            if col.lower() not in exclude_cols 
+            and not any(k in col.lower() for k in leak_keywords)
+        ]
         
-        # 1. Pre-process Data (Standardization)
-        # We assume 'close' is raw, but features should be pre-scaled (Z-score)
-        # before passing to this class in a real pipeline.
-        self.prices = self.df["close"].values.astype(np.float32)
-        
-        # Select feature columns (exclude raw price/date columns)
-        exclude_cols = ["close", "date", "open", "high", "low", "volume"]
-        feature_cols = [col for col in self.df.columns if col not in exclude_cols]
-        self.features = self.df[feature_cols].values.astype(np.float32)
-        
-        # Check for NaNs
-        if np.isnan(self.features).any():
-            raise ValueError("Features contain NaN values. Clean data before passing to Env.")
-
+        self.features = self.df[self.feature_cols].values.astype(np.float32)
         self.n_features = self.features.shape[1]
         
-        # 2. Action Space: Target Weight [-1, 1]
-        # -1 = 100% Short, 0 = Cash, 1 = 100% Long
+        # Action Space: Target Weight [-1, 1]
         self.action_space = spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)
         
-        # 3. Observation Space
-        # [Market Features (N), Current Position Weight (1), Portfolio Return (1)]
+        # Observation Space
         obs_dim = self.n_features + 2
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(obs_dim,), dtype=np.float32
         )
         
+        # Internal state tracking
+        self.returns_history = []
+        self.portfolio_values = []
+        
     def reset(self, seed: int = None, options: dict = None):
-            super().reset(seed=seed)
+        super().reset(seed=seed)
 
-            options = options or {}
-            random_start = options.get("random_start", self.random_start)
-            start_index = options.get("start_index", self.start_index)
+        options = options or {}
+        random_start = options.get("random_start", self.random_start)
+        start_index = options.get("start_index", self.start_index)
 
-            if not random_start:
-                base_start = self.lookback_window if start_index is None else int(start_index)
-                self.current_step = max(self.lookback_window, base_start)
+        # Logic to handle random starts safely
+        if not random_start:
+            base_start = self.lookback_window if start_index is None else int(start_index)
+            self.current_step = max(self.lookback_window, base_start)
+        else:
+            # We need at least 2 steps remaining (current close -> next open)
+            high = len(self.df) - self.max_steps - 2 
+            if high <= self.lookback_window:
+                self.current_step = self.lookback_window
             else:
-                if self.max_steps is None:
-                    high = len(self.df) - 2
-                else:
-                    high = len(self.df) - self.max_steps - 1
-                if high <= self.lookback_window:
-                    self.current_step = self.lookback_window
-                else:
-                    self.current_step = np.random.randint(self.lookback_window, high)
+                self.current_step = np.random.randint(self.lookback_window, high)
 
-            if self.max_steps is None:
-                self.stop_step = len(self.df) - 1
-            else:
-                self.stop_step = min(self.current_step + self.max_steps, len(self.df) - 1)
+        if self.max_steps is None:
+            self.stop_step = len(self.df) - 2
+        else:
+            self.stop_step = min(self.current_step + self.max_steps, len(self.df) - 2)
 
-            self.balance = self.initial_balance
-            self.shares = 0
-            self.total_asset = self.initial_balance
-            self.prev_asset = self.initial_balance
+        self.balance = self.initial_balance
+        self.shares = 0
+        self.total_asset = self.initial_balance
+        self.prev_asset = self.initial_balance
 
-            self.returns_history = []
-            self.portfolio_values = [self.initial_balance]
+        self.returns_history = []
+        self.portfolio_values = [self.initial_balance]
 
-            return self._get_observation(), {}
+        return self._get_observation(), {}
     
     def _get_observation(self) -> np.ndarray:
-        # Market features
+        # 1. Market Features for current step
         features = self.features[self.current_step]
         
-        # Account state (Normalized)
-        current_price = self.prices[self.current_step]
+        # 2. Account State (Using CLOSE price for valuation)
+        # FIX: Changed self.prices to self.prices_close
+        current_price = self.prices_close[self.current_step]
+        
         if self.total_asset <= 0:
             position_weight = 0.0
         else:
             position_weight = (self.shares * current_price) / self.total_asset
             
-        # Log return of portfolio since last step (Momentum of account)
+        # 3. Portfolio Return
         pf_return = np.log(self.total_asset / self.prev_asset) if self.prev_asset > 0 else 0.0
         
         obs = np.concatenate([features, [position_weight, pf_return]])
@@ -139,52 +138,48 @@ class TradingEnvRL(gym.Env):
     
     def step(self, action: np.ndarray):
         target_weight = np.clip(action[0], -1, 1)
-        current_price = self.prices[self.current_step]
         
-        # Calculate current weight
-        if self.total_asset <= 0:
-            done = True
-            return self._get_observation(), -100.0, done, False, {}
-
-        # 4. Execution Logic (Rebalancing)
-        # Determine how much we need to buy/sell to reach target weight
+        # --- EXECUTION LOGIC (Next Open) ---
+        # We are at step t. We execute at t+1 Open.
+        execution_price = self.prices_open[self.current_step + 1]
+        
+        # Determine trade size
         target_value = self.total_asset * target_weight
-        current_holding_value = self.shares * current_price
+        current_holding_value = self.shares * execution_price
         diff_value = target_value - current_holding_value
         
-        trade_shares = int(diff_value / current_price)
+        trade_shares = int(diff_value / execution_price)
         
-        # Execute Trade
+        # Execute
         if trade_shares != 0:
-            transaction_cost = abs(trade_shares * current_price) * self.commission
+            transaction_cost = abs(trade_shares * execution_price) * self.commission
             self.balance -= transaction_cost
-            
-            # Update holdings
             self.shares += trade_shares
-            self.balance -= (trade_shares * current_price)
+            self.balance -= (trade_shares * execution_price)
             
-        # Update Time Step
+        # --- TIME STEP UPDATE ---
         self.prev_asset = self.total_asset
         self.current_step += 1
         
-        # Update Portfolio Value (Mark to Market)
-        new_price = self.prices[self.current_step]
+        # --- VALUATION (Current Close) ---
+        # FIX: Changed self.prices to self.prices_close
+        new_price = self.prices_close[self.current_step]
         self.total_asset = self.balance + (self.shares * new_price)
         
-        # Track returns and portfolio values for reward calculation
+        # Track history
         step_return = np.log(self.total_asset / self.prev_asset) if self.prev_asset > 0 else 0.0
         self.returns_history.append(step_return)
         self.portfolio_values.append(self.total_asset)
         
-        # 5. Calculate reward using configured method
+        # Calculate Reward
         reward = self._calculate_reward()
 
-        terminated = self.current_step >= self.stop_step or self.current_step >= len(self.df) - 1
+        terminated = self.current_step >= self.stop_step
         
-        # Early stopping if broke
+        # Ruin condition
         if self.total_asset < self.initial_balance * 0.1:
             terminated = True
-            reward = -10.0 # Penalty for ruin
+            reward = -10.0 # Heavy penalty for blowing up account
             
         return self._get_observation(), reward, terminated, False, {
             "total_asset": self.total_asset,
@@ -207,67 +202,40 @@ class TradingEnvRL(gym.Env):
             return self._reward_profit()
     
     def _reward_profit(self) -> float:
-        """Simple profit-based reward."""
         if len(self.returns_history) > 0:
             return self.returns_history[-1] * 100
         return 0.0
     
     def _reward_sharpe(self) -> float:
-        """Sharpe ratio reward (risk-adjusted)."""
         if len(self.returns_history) < 2:
             return 0.0
-        
-        returns = np.array(self.returns_history[-30:])  # Last 30 steps
-        mean_return = np.mean(returns)
-        std_return = np.std(returns) + 1e-6
-        sharpe = mean_return / std_return
-        return float(sharpe)
+        returns = np.array(self.returns_history[-30:])
+        return float(np.mean(returns) / (np.std(returns) + 1e-6))
     
     def _reward_sortino(self) -> float:
-        """Sortino ratio reward (downside risk-adjusted)."""
         if len(self.returns_history) < 2:
             return 0.0
-        
         returns = np.array(self.returns_history[-30:])
-        mean_return = np.mean(returns)
-        downside_returns = returns[returns < 0]
-        
-        if len(downside_returns) == 0:
-            return mean_return * 10
-        
-        downside_std = np.std(downside_returns) + 1e-6
-        sortino = mean_return / downside_std
-        return float(sortino)
+        downside = returns[returns < 0]
+        if len(downside) == 0: return np.mean(returns) * 10
+        return float(np.mean(returns) / (np.std(downside) + 1e-6))
     
-    def _reward_cvar(self, alpha: float = 0.05) -> float:
-        """Conditional Value at Risk (CVaR) reward."""
-        if len(self.returns_history) < 10:
-            return 0.0
-        
+    def _reward_cvar(self, alpha=0.05) -> float:
+        if len(self.returns_history) < 10: return 0.0
         returns = np.array(self.returns_history[-30:])
         var = np.quantile(returns, alpha)
         cvar = returns[returns <= var].mean()
-        
-        # Reward is negative CVaR (we want to minimize losses)
         return float(-cvar * 100)
-    
+
     def _reward_max_drawdown(self) -> float:
-        """Maximum drawdown penalty reward."""
-        if len(self.portfolio_values) < 2:
-            return 0.0
-        
-        portfolio_array = np.array(self.portfolio_values[-30:])
-        running_max = np.maximum.accumulate(portfolio_array)
-        drawdown = (portfolio_array - running_max) / running_max
-        max_drawdown = np.min(drawdown)
-        
-        # Penalize large drawdowns, reward small ones
-        return float(-max_drawdown * 100)
-    
+        if len(self.portfolio_values) < 2: return 0.0
+        p = np.array(self.portfolio_values[-30:])
+        rmax = np.maximum.accumulate(p)
+        dd = (p - rmax) / rmax
+        return float(-np.min(dd) * 100)
+
     def render(self):
-        """Render environment state."""
-        print(f"Step: {self.current_step}, Balance: ${self.balance:.2f}, "
-              f"Shares: {self.shares}, Total: ${self.total_asset:.2f}")
+        print(f"Step: {self.current_step}, Balance: {self.balance:.2f}, Shares: {self.shares}, Total: {self.total_asset:.2f}")
 
 
 class ModelTrainerRL:
@@ -308,13 +276,13 @@ class ModelTrainerRL:
         df_train = df_train.copy()
         df_test = df_test.copy()
         
-        # Fit scaler on train, apply to both
-        if scale_features and len(feat_cols) > 0:
-            self.scaler = StandardScaler()
-            self.scaler.fit(df_train[feat_cols].astype(np.float32))
-            df_train[feat_cols] = self.scaler.transform(df_train[feat_cols].astype(np.float32))
-            df_test[feat_cols] = self.scaler.transform(df_test[feat_cols].astype(np.float32))
-            logger.info("Fitted and applied feature scaling (StandardScaler)")
+        # # Fit scaler on train, apply to both
+        # if scale_features and len(feat_cols) > 0:
+        #     self.scaler = StandardScaler()
+        #     self.scaler.fit(df_train[feat_cols].astype(np.float32))
+        #     df_train[feat_cols] = self.scaler.transform(df_train[feat_cols].astype(np.float32))
+        #     df_test[feat_cols] = self.scaler.transform(df_test[feat_cols].astype(np.float32))
+        #     logger.info("Fitted and applied feature scaling (StandardScaler)")
         
         env_train = TradingEnvRL(
             df_train,
@@ -322,7 +290,7 @@ class ModelTrainerRL:
             commission=commission,
             reward_func=reward_func,
             lookback_window=lookback,
-            random_start=False,  # Always randomize for training
+            random_start=True,  # Always randomize for training
             max_steps=max_steps,
         )
         
