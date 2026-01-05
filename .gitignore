@@ -212,3 +212,14 @@ data/processed/
 models/*.pkl
 models/*.h5
 models/*.json
+
+*venv*/
+.env
+
+*.zip
+models/*.zip
+ppo_model.zip
+sac_model.zip
+*.tar.gz
+models/ppo_model.zip
+models/sac_model.zip
