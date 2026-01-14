@@ -244,6 +244,16 @@ class ModelTrainerRL:
         self.env_train = None
         self.env_test = None
         self.vec_norm_stats = {} # Store normalization stats
+        
+        # Metrics tracking for RL evaluation
+        self.training_metrics = {
+            'episode_rewards': [],
+            'episode_lengths': [],
+            'episode_returns': [],
+            'timesteps': [],
+            'success_count': 0,
+            'total_episodes': 0
+        }
     
     def prepare_environment(
         self,
@@ -665,6 +675,253 @@ class ModelTrainerRL:
                 norm_path = os.path.join(path, f"{name}_vecnormalize.pkl")
                 norm_env.save(norm_path)
                 print(f"Saved model and normalization stats for {norm_path}")
+    
+    def calculate_rl_performance_metrics(self, 
+                                         episode_rewards: List[float] = None,
+                                         episode_lengths: List[int] = None,
+                                         episode_returns: List[float] = None,
+                                         success_threshold: float = 0.0) -> Dict:
+        """
+        Calculate comprehensive metrics for evaluating Deep Reinforcement Learning agent performance.
+        
+        Args:
+            episode_rewards: List of cumulative rewards per episode (if None, uses stored training metrics)
+            episode_lengths: List of episode lengths in steps (if None, uses stored training metrics)
+            episode_returns: List of portfolio returns per episode (if None, uses stored training metrics)
+            success_threshold: Threshold for defining a successful episode (default: 0.0 = positive return)
+            
+        Returns:
+            Dictionary containing comprehensive RL performance metrics:
+            - Cumulative Reward metrics
+            - Average Reward metrics
+            - Success Rate
+            - Episode Length statistics
+            - Learning Curve metrics
+            - Stability metrics
+            - Convergence metrics
+        """
+        # Use provided data or fall back to stored training metrics
+        if episode_rewards is None:
+            episode_rewards = self.training_metrics.get('episode_rewards', [])
+        if episode_lengths is None:
+            episode_lengths = self.training_metrics.get('episode_lengths', [])
+        if episode_returns is None:
+            episode_returns = self.training_metrics.get('episode_returns', [])
+            
+        if len(episode_rewards) == 0:
+            logger.warning("No episode data available for metrics calculation")
+            return {}
+            
+        # Convert to numpy arrays for easier computation
+        rewards_array = np.array(episode_rewards)
+        lengths_array = np.array(episode_lengths) if len(episode_lengths) > 0 else np.ones(len(rewards_array))
+        returns_array = np.array(episode_returns) if len(episode_returns) > 0 else rewards_array
+        
+        # --- 1. CUMULATIVE REWARD METRICS ---
+        total_cumulative_reward = np.sum(rewards_array)
+        mean_episode_reward = np.mean(rewards_array)
+        std_episode_reward = np.std(rewards_array)
+        max_episode_reward = np.max(rewards_array)
+        min_episode_reward = np.min(rewards_array)
+        median_episode_reward = np.median(rewards_array)
+        
+        # --- 2. AVERAGE REWARD PER STEP ---
+        total_steps = np.sum(lengths_array)
+        avg_reward_per_step = total_cumulative_reward / total_steps if total_steps > 0 else 0.0
+        
+        # Per-episode average reward per step
+        episode_avg_rewards = rewards_array / lengths_array
+        mean_step_reward = np.mean(episode_avg_rewards)
+        std_step_reward = np.std(episode_avg_rewards)
+        
+        # --- 3. SUCCESS RATE ---
+        successful_episodes = np.sum(returns_array > success_threshold)
+        success_rate = successful_episodes / len(returns_array) * 100
+        
+        # --- 4. EPISODE LENGTH STATISTICS ---
+        mean_episode_length = np.mean(lengths_array)
+        std_episode_length = np.std(lengths_array)
+        max_episode_length = np.max(lengths_array)
+        min_episode_length = np.min(lengths_array)
+        
+        # --- 5. LEARNING CURVE METRICS ---
+        # Split into early, middle, late phases
+        n_episodes = len(rewards_array)
+        phase_size = max(1, n_episodes // 3)
+        
+        early_rewards = rewards_array[:phase_size]
+        middle_rewards = rewards_array[phase_size:2*phase_size]
+        late_rewards = rewards_array[2*phase_size:]
+        
+        learning_improvement = np.mean(late_rewards) - np.mean(early_rewards)
+        learning_rate_pct = (learning_improvement / (abs(np.mean(early_rewards)) + 1e-8)) * 100
+        
+        # Moving average for smoothed learning curve
+        window_size = min(10, n_episodes // 5) if n_episodes >= 5 else 1
+        if window_size > 1:
+            moving_avg = np.convolve(rewards_array, np.ones(window_size)/window_size, mode='valid')
+            trend_slope = np.polyfit(range(len(moving_avg)), moving_avg, 1)[0] if len(moving_avg) > 1 else 0.0
+        else:
+            trend_slope = 0.0
+            
+        # --- 6. STABILITY & CONVERGENCE METRICS ---
+        # Coefficient of Variation (lower = more stable)
+        cv_rewards = (std_episode_reward / (abs(mean_episode_reward) + 1e-8)) * 100
+        
+        # Convergence: Compare variance in first half vs second half
+        half = n_episodes // 2
+        first_half_var = np.var(rewards_array[:half]) if half > 0 else 0.0
+        second_half_var = np.var(rewards_array[half:]) if half > 0 else 0.0
+        variance_reduction = ((first_half_var - second_half_var) / (first_half_var + 1e-8)) * 100
+        
+        # Best episode performance
+        best_episode_idx = np.argmax(rewards_array)
+        best_episode_reward = rewards_array[best_episode_idx]
+        best_episode_return = returns_array[best_episode_idx] if len(returns_array) > 0 else 0.0
+        
+        # Worst episode performance
+        worst_episode_idx = np.argmin(rewards_array)
+        worst_episode_reward = rewards_array[worst_episode_idx]
+        worst_episode_return = returns_array[worst_episode_idx] if len(returns_array) > 0 else 0.0
+        
+        # --- 7. PORTFOLIO-SPECIFIC METRICS ---
+        if len(returns_array) > 0:
+            mean_return = np.mean(returns_array) * 100
+            std_return = np.std(returns_array) * 100
+            sharpe_ratio = (np.mean(returns_array) / (np.std(returns_array) + 1e-8)) if np.std(returns_array) > 0 else 0.0
+            
+            # Win rate
+            win_rate = (np.sum(returns_array > 0) / len(returns_array)) * 100
+            
+            # Maximum drawdown in returns
+            cumulative_returns = np.cumprod(1 + returns_array) - 1
+            running_max = np.maximum.accumulate(cumulative_returns)
+            drawdown = (cumulative_returns - running_max)
+            max_drawdown = np.min(drawdown) * 100 if len(drawdown) > 0 else 0.0
+        else:
+            mean_return = 0.0
+            std_return = 0.0
+            sharpe_ratio = 0.0
+            win_rate = 0.0
+            max_drawdown = 0.0
+            
+        # --- 8. COMPILE ALL METRICS ---
+        metrics = {
+            # Cumulative Reward Metrics
+            'total_cumulative_reward': float(total_cumulative_reward),
+            'mean_episode_reward': float(mean_episode_reward),
+            'std_episode_reward': float(std_episode_reward),
+            'median_episode_reward': float(median_episode_reward),
+            'max_episode_reward': float(max_episode_reward),
+            'min_episode_reward': float(min_episode_reward),
+            
+            # Average Reward Per Step
+            'avg_reward_per_step': float(avg_reward_per_step),
+            'mean_step_reward': float(mean_step_reward),
+            'std_step_reward': float(std_step_reward),
+            
+            # Success Rate
+            'success_rate_pct': float(success_rate),
+            'successful_episodes': int(successful_episodes),
+            'total_episodes': int(n_episodes),
+            
+            # Episode Length Statistics
+            'mean_episode_length': float(mean_episode_length),
+            'std_episode_length': float(std_episode_length),
+            'max_episode_length': float(max_episode_length),
+            'min_episode_length': float(min_episode_length),
+            'total_steps': int(total_steps),
+            
+            # Learning Curve
+            'learning_improvement': float(learning_improvement),
+            'learning_rate_pct': float(learning_rate_pct),
+            'trend_slope': float(trend_slope),
+            'early_phase_mean_reward': float(np.mean(early_rewards)),
+            'middle_phase_mean_reward': float(np.mean(middle_rewards)) if len(middle_rewards) > 0 else 0.0,
+            'late_phase_mean_reward': float(np.mean(late_rewards)) if len(late_rewards) > 0 else 0.0,
+            
+            # Stability & Convergence
+            'coefficient_of_variation': float(cv_rewards),
+            'variance_reduction_pct': float(variance_reduction),
+            'first_half_variance': float(first_half_var),
+            'second_half_variance': float(second_half_var),
+            
+            # Best/Worst Episodes
+            'best_episode_idx': int(best_episode_idx),
+            'best_episode_reward': float(best_episode_reward),
+            'best_episode_return': float(best_episode_return),
+            'worst_episode_idx': int(worst_episode_idx),
+            'worst_episode_reward': float(worst_episode_reward),
+            'worst_episode_return': float(worst_episode_return),
+            
+            # Portfolio Metrics
+            'mean_return_pct': float(mean_return),
+            'std_return_pct': float(std_return),
+            'sharpe_ratio': float(sharpe_ratio),
+            'win_rate_pct': float(win_rate),
+            'max_drawdown_pct': float(max_drawdown),
+        }
+        
+        # Log summary
+        logger.info("=" * 60)
+        logger.info("RL AGENT PERFORMANCE METRICS SUMMARY")
+        logger.info("=" * 60)
+        logger.info(f"Total Episodes: {n_episodes}")
+        logger.info(f"Mean Episode Reward: {mean_episode_reward:.2f} ± {std_episode_reward:.2f}")
+        logger.info(f"Success Rate: {success_rate:.1f}%")
+        logger.info(f"Learning Improvement: {learning_improvement:.2f} ({learning_rate_pct:.1f}%)")
+        logger.info(f"Trend Slope: {trend_slope:.4f}")
+        logger.info(f"Stability (CV): {cv_rewards:.2f}%")
+        logger.info(f"Portfolio Sharpe Ratio: {sharpe_ratio:.3f}")
+        logger.info("=" * 60)
+        
+        return metrics
+    
+    def track_episode_metrics(self, episode_reward: float, episode_length: int, 
+                            episode_return: float, timestep: int):
+        """
+        Track metrics for a single episode during training.
+        
+        Args:
+            episode_reward: Cumulative reward for the episode
+            episode_length: Number of steps in the episode
+            episode_return: Portfolio return for the episode
+            timestep: Current training timestep
+        """
+        self.training_metrics['episode_rewards'].append(episode_reward)
+        self.training_metrics['episode_lengths'].append(episode_length)
+        self.training_metrics['episode_returns'].append(episode_return)
+        self.training_metrics['timesteps'].append(timestep)
+        self.training_metrics['total_episodes'] += 1
+        
+        if episode_return > 0:
+            self.training_metrics['success_count'] += 1
+    
+    def get_learning_curve_data(self) -> Dict:
+        """
+        Get data for plotting learning curves.
+        
+        Returns:
+            Dictionary with episodes, rewards, and smoothed rewards
+        """
+        rewards = self.training_metrics.get('episode_rewards', [])
+        if len(rewards) == 0:
+            return {}
+            
+        # Calculate moving average
+        window_size = min(10, len(rewards) // 5) if len(rewards) >= 5 else 1
+        if window_size > 1:
+            smoothed = np.convolve(rewards, np.ones(window_size)/window_size, mode='valid')
+        else:
+            smoothed = rewards
+            
+        return {
+            'episodes': list(range(len(rewards))),
+            'rewards': rewards,
+            'smoothed_rewards': list(smoothed),
+            'lengths': self.training_metrics.get('episode_lengths', []),
+            'returns': self.training_metrics.get('episode_returns', [])
+        }
     
     def predict_action(self, obs: np.ndarray, model_name: Optional[str] = None) -> np.ndarray:
         """Predict action using trained model."""
