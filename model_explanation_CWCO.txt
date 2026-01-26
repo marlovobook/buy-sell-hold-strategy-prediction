@@ -1,0 +1,102 @@
+================================================================================
+EXPLAINABLE AI ANALYSIS - CWCO TRADING AGENT
+================================================================================
+
+DECISION RULES:
+============================================================
+AGENT DECISION RULES (Human-Readable)
+============================================================
+
+The agent decides to BUY/HOLD/SELL based on:
+
+1. position_weight (Importance: 37.62%)
+2. cci_20_0.015 (Importance: 26.47%)
+3. fibo_78.6 (Importance: 25.73%)
+4. fibo_61.8 (Importance: 25.30%)
+5. fibo_50.0 (Importance: 24.94%)
+
+DECISION LOGIC:
+- If predicted weight > 1.00 → BUY/INCREASE POSITION
+- If predicted weight between 1.00 and 1.00 → HOLD
+- If predicted weight < 1.00 → SELL/REDUCE POSITION
+
+KEY OBSERVATION INPUTS:
+1. Technical Indicators: RSI, MACD, Moving Averages, etc.
+2. Current Position Weight: How much stock we already own
+3. Recent Portfolio Return: Recent profit/loss
+
+ACTION OUTPUT:
+- Continuous value [0, 1] representing target portfolio weight
+- 0 = Exit all positions (100% cash)
+- 1 = Full investment (100% in stock)
+
+STATISTICAL SUMMARY:
+- Mean action: 0.984
+- Std deviation: 0.071
+- Action range: [0.508, 1.000]
+============================================================
+
+================================================================================
+FEATURE IMPORTANCE (Top 20)
+================================================================================
+ 1. position_weight                          : 0.376234
+ 2. cci_20_0.015                             : 0.264650
+ 3. fibo_78.6                                : 0.257292
+ 4. fibo_61.8                                : 0.253034
+ 5. fibo_50.0                                : 0.249360
+ 6. fibo_38.2                                : 0.246536
+ 7. fibo_23.6                                : 0.243951
+ 8. rolling_high_52w                         : 0.241113
+ 9. sma_20                                   : 0.216974
+10. sma_50                                   : 0.213638
+11. fibo_161.8                               : 0.209101
+12. vwap_d                                   : 0.174102
+13. bbl_5_2.0_2.0                            : 0.170706
+14. macdh_12_26_9                            : 0.169711
+15. bbm_5_2.0_2.0                            : 0.163998
+16. bbu_5_2.0_2.0                            : 0.153454
+17. atrr_14                                  : 0.089043
+18. adx_14                                   : 0.088503
+19. dmp_14                                   : 0.079784
+20. adxr_14_2                                : 0.072901
+
+================================================================================
+ANSWER FOR YOUR PROFESSOR
+================================================================================
+
+Q: What parameters make the agent decide to BUY/HOLD/SELL?
+
+A: The agent is NOT a black box. It makes decisions based on:
+
+1. INPUT OBSERVATIONS (What the agent sees):
+   - Technical Indicators: RSI, MACD, Moving Averages, Bollinger Bands, etc.
+   - Portfolio State: Current position weight (% of capital invested)
+   - Performance Metrics: Recent portfolio returns
+
+2. LEARNED NEURAL NETWORK WEIGHTS:
+   - The PPO algorithm learns optimal weights through trial-and-error
+   - These weights connect input features to actions
+   - Training uses reward signals (profit, Sharpe ratio, etc.)
+
+3. OUTPUT ACTION (What the agent decides):
+   - Continuous value [0, 1] representing target portfolio weight
+   - SELL: action < 1.000
+   - HOLD: 1.000 <= action <= 1.000
+   - BUY:  action > 1.000
+
+4. EXPLAINABILITY:
+   - Feature importance shows which indicators matter most
+   - Action thresholds translate continuous outputs to discrete signals
+   - Decision patterns can be analyzed and visualized
+
+5. TOP 5 DECISION DRIVERS FOR THIS MODEL:
+   1. position_weight (correlation: 0.3762)
+   2. cci_20_0.015 (correlation: 0.2647)
+   3. fibo_78.6 (correlation: 0.2573)
+   4. fibo_61.8 (correlation: 0.2530)
+   5. fibo_50.0 (correlation: 0.2494)
+
+CONCLUSION:
+The model learns complex non-linear relationships between market indicators
+and profitable actions. While the internal neural network is sophisticated,
+we can explain WHAT it observes, HOW it decides, and WHICH features matter most.
