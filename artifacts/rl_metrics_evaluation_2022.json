@@ -1,0 +1,490 @@
+[
+  {
+    "stock": "AAPL",
+    "status": "ok",
+    "n_rows": 927,
+    "train_rows": 741,
+    "test_rows": 186,
+    "max_steps_used": 120,
+    "mean_episode_reward": 28.693312224984094,
+    "std_episode_reward": 4.103332746962944,
+    "var_episode_reward": 16.83733963229846,
+    "success_rate_pct": 100.0,
+    "mean_return_pct": 16.42772582180714,
+    "std_return_pct": 0.25811311758623,
+    "sharpe_ratio": 63.64520459179849,
+    "max_drawdown_pct": 0.0,
+    "variance_ratio_late_vs_early": 3.782899502766361,
+    "rolling_variance_trend_slope": 1.7005287187827265,
+    "stat_validation": {
+      "reward_mean_ci": {
+        "point_estimate": 28.693312224984094,
+        "ci_lower": 27.044357784839672,
+        "ci_upper": 30.672971283971528,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "reward_std_ci": {
+        "point_estimate": 4.103332746962944,
+        "ci_lower": 2.297306682582469,
+        "ci_upper": 5.744901332022496,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "return_mean_ci": {
+        "point_estimate": 0.1642772582180714,
+        "ci_lower": 0.16331481898419997,
+        "ci_upper": 0.16546190968801022,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "one_sample_return_test": {
+        "hypothesis": "H0: mean_return <= 0, H1: mean_return > 0",
+        "observed_mean": 0.1642772582180714,
+        "p_value": 0.0001999600079984003,
+        "effect_size": 63.64520459179849,
+        "n_samples": 20
+      },
+      "benchmark_test": {
+        "observed_mean_diff": -0.19225503718243797,
+        "p_value": 0.0001999600079984003,
+        "effect_size": -9.68417399371111,
+        "n_pairs": 20
+      },
+      "benchmark_mean_diff_ci": {
+        "point_estimate": -0.19225503718243797,
+        "ci_lower": -0.20181036078350115,
+        "ci_upper": -0.1839505885354412,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      }
+    }
+  },
+  {
+    "stock": "AMZN",
+    "status": "ok",
+    "n_rows": 927,
+    "train_rows": 741,
+    "test_rows": 186,
+    "max_steps_used": 120,
+    "mean_episode_reward": 16.049433405139304,
+    "std_episode_reward": 2.8412718457606636,
+    "var_episode_reward": 8.072825701512208,
+    "success_rate_pct": 100.0,
+    "mean_return_pct": 5.078739734710705,
+    "std_return_pct": 0.020952237856377412,
+    "sharpe_ratio": 242.38448346372968,
+    "max_drawdown_pct": 0.0,
+    "variance_ratio_late_vs_early": 0.8130386375400139,
+    "rolling_variance_trend_slope": -0.04322356169925343,
+    "stat_validation": {
+      "reward_mean_ci": {
+        "point_estimate": 16.049433405139304,
+        "ci_lower": 14.866358148641442,
+        "ci_upper": 17.212605894111405,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "reward_std_ci": {
+        "point_estimate": 2.8412718457606636,
+        "ci_lower": 2.312105484633464,
+        "ci_upper": 2.926848747269119,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "return_mean_ci": {
+        "point_estimate": 0.050787397347107056,
+        "ci_lower": 0.050701860194244476,
+        "ci_upper": 0.050872934499969644,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "one_sample_return_test": {
+        "hypothesis": "H0: mean_return <= 0, H1: mean_return > 0",
+        "observed_mean": 0.050787397347107056,
+        "p_value": 0.0001999600079984003,
+        "effect_size": 242.38448346372968,
+        "n_samples": 20
+      },
+      "benchmark_test": {
+        "observed_mean_diff": -0.08400189483631723,
+        "p_value": 0.0001999600079984003,
+        "effect_size": -2.1823874147830717,
+        "n_pairs": 20
+      },
+      "benchmark_mean_diff_ci": {
+        "point_estimate": -0.08400189483631723,
+        "ci_lower": -0.10038102045786189,
+        "ci_upper": -0.06698450118787114,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      }
+    }
+  },
+  {
+    "stock": "TSLA",
+    "status": "ok",
+    "n_rows": 927,
+    "train_rows": 741,
+    "test_rows": 186,
+    "max_steps_used": 120,
+    "mean_episode_reward": 11.878206736930414,
+    "std_episode_reward": 0.28725321316172675,
+    "var_episode_reward": 0.08251440847173641,
+    "success_rate_pct": 100.0,
+    "mean_return_pct": 0.35409331991577336,
+    "std_return_pct": 8.673617379884035e-17,
+    "sharpe_ratio": 354093.31988506066,
+    "max_drawdown_pct": 0.0,
+    "variance_ratio_late_vs_early": 1.393209473703447,
+    "rolling_variance_trend_slope": 0.0020896557615898577,
+    "stat_validation": {
+      "reward_mean_ci": {
+        "point_estimate": 11.878206736930414,
+        "ci_lower": 11.7548383697267,
+        "ci_upper": 12.003533392115283,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "reward_std_ci": {
+        "point_estimate": 0.28725321316172675,
+        "ci_lower": 0.2147843259153531,
+        "ci_upper": 0.3294841857170159,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "return_mean_ci": {
+        "point_estimate": 0.0035409331991577337,
+        "ci_lower": 0.0035409331991577337,
+        "ci_upper": 0.0035409331991577337,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "one_sample_return_test": {
+        "hypothesis": "H0: mean_return <= 0, H1: mean_return > 0",
+        "observed_mean": 0.0035409331991577337,
+        "p_value": 0.0001999600079984003,
+        "effect_size": 354093.31988506066,
+        "n_samples": 20
+      },
+      "benchmark_test": {
+        "observed_mean_diff": -0.14325964098782,
+        "p_value": 0.0001999600079984003,
+        "effect_size": -6.158126821790789,
+        "n_pairs": 20
+      },
+      "benchmark_mean_diff_ci": {
+        "point_estimate": -0.14325964098782,
+        "ci_lower": -0.153730423941595,
+        "ci_upper": -0.1331596234170405,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      }
+    }
+  },
+  {
+    "stock": "BAC",
+    "status": "ok",
+    "n_rows": 927,
+    "train_rows": 741,
+    "test_rows": 186,
+    "max_steps_used": 120,
+    "mean_episode_reward": 26.81732360663542,
+    "std_episode_reward": 2.1196546303786583,
+    "var_episode_reward": 4.492935752085686,
+    "success_rate_pct": 100.0,
+    "mean_return_pct": 9.128505191254101,
+    "std_return_pct": 0.26383223521671456,
+    "sharpe_ratio": 34.5995271738827,
+    "max_drawdown_pct": 0.0,
+    "variance_ratio_late_vs_early": 4.122254012733715,
+    "rolling_variance_trend_slope": 0.18528456846984637,
+    "stat_validation": {
+      "reward_mean_ci": {
+        "point_estimate": 26.81732360663542,
+        "ci_lower": 25.81044752708422,
+        "ci_upper": 27.709548753075968,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "reward_std_ci": {
+        "point_estimate": 2.1196546303786583,
+        "ci_lower": 1.2942856391684165,
+        "ci_upper": 2.701052329840001,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "return_mean_ci": {
+        "point_estimate": 0.09128505191254101,
+        "ci_lower": 0.0901522651068703,
+        "ci_upper": 0.09241783871821174,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "one_sample_return_test": {
+        "hypothesis": "H0: mean_return <= 0, H1: mean_return > 0",
+        "observed_mean": 0.09128505191254101,
+        "p_value": 0.0001999600079984003,
+        "effect_size": 34.5995271738827,
+        "n_samples": 20
+      },
+      "benchmark_test": {
+        "observed_mean_diff": -0.11436986930565714,
+        "p_value": 0.0001999600079984003,
+        "effect_size": -5.18533697699928,
+        "n_pairs": 20
+      },
+      "benchmark_mean_diff_ci": {
+        "point_estimate": -0.11436986930565714,
+        "ci_lower": -0.12360639613506108,
+        "ci_upper": -0.10513364114373355,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      }
+    }
+  },
+  {
+    "stock": "MDU",
+    "status": "ok",
+    "n_rows": 927,
+    "train_rows": 741,
+    "test_rows": 186,
+    "max_steps_used": 120,
+    "mean_episode_reward": 0.0,
+    "std_episode_reward": 0.0,
+    "var_episode_reward": 0.0,
+    "success_rate_pct": 0.0,
+    "mean_return_pct": 0.0,
+    "std_return_pct": 0.0,
+    "sharpe_ratio": 0.0,
+    "max_drawdown_pct": 0.0,
+    "variance_ratio_late_vs_early": 0.0,
+    "rolling_variance_trend_slope": 0.0,
+    "stat_validation": {
+      "reward_mean_ci": {
+        "point_estimate": 0.0,
+        "ci_lower": 0.0,
+        "ci_upper": 0.0,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "reward_std_ci": {
+        "point_estimate": 0.0,
+        "ci_lower": 0.0,
+        "ci_upper": 0.0,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "return_mean_ci": {
+        "point_estimate": 0.0,
+        "ci_lower": 0.0,
+        "ci_upper": 0.0,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "one_sample_return_test": {
+        "hypothesis": "H0: mean_return <= 0, H1: mean_return > 0",
+        "observed_mean": 0.0,
+        "p_value": 1.0,
+        "effect_size": 0.0,
+        "n_samples": 20
+      },
+      "benchmark_test": {
+        "observed_mean_diff": -0.2210480469847078,
+        "p_value": 0.0001999600079984003,
+        "effect_size": -14.925785635784008,
+        "n_pairs": 20
+      },
+      "benchmark_mean_diff_ci": {
+        "point_estimate": -0.2210480469847078,
+        "ci_lower": -0.22754434115045805,
+        "ci_upper": -0.21497081413754499,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      }
+    }
+  },
+  {
+    "stock": "CWCO",
+    "status": "ok",
+    "n_rows": 927,
+    "train_rows": 741,
+    "test_rows": 186,
+    "max_steps_used": 120,
+    "mean_episode_reward": 11.71484691490553,
+    "std_episode_reward": 2.162630431076292,
+    "var_episode_reward": 4.676970381417229,
+    "success_rate_pct": 100.0,
+    "mean_return_pct": 3.700937092004715,
+    "std_return_pct": 0.08823912657965231,
+    "sharpe_ratio": 41.94165665281503,
+    "max_drawdown_pct": 0.0,
+    "variance_ratio_late_vs_early": 0.2913304234112739,
+    "rolling_variance_trend_slope": -0.1932505685931614,
+    "stat_validation": {
+      "reward_mean_ci": {
+        "point_estimate": 11.71484691490553,
+        "ci_lower": 10.813732120912146,
+        "ci_upper": 12.759845035115822,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "reward_std_ci": {
+        "point_estimate": 2.162630431076292,
+        "ci_lower": 1.1661612225970077,
+        "ci_upper": 2.839468550553649,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "return_mean_ci": {
+        "point_estimate": 0.03700937092004715,
+        "ci_lower": 0.03670871285646474,
+        "ci_upper": 0.037452501322172364,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "one_sample_return_test": {
+        "hypothesis": "H0: mean_return <= 0, H1: mean_return > 0",
+        "observed_mean": 0.03700937092004715,
+        "p_value": 0.0001999600079984003,
+        "effect_size": 41.94165665281503,
+        "n_samples": 20
+      },
+      "benchmark_test": {
+        "observed_mean_diff": -0.25781396460498407,
+        "p_value": 0.0001999600079984003,
+        "effect_size": -10.447925303437087,
+        "n_pairs": 20
+      },
+      "benchmark_mean_diff_ci": {
+        "point_estimate": -0.25781396460498407,
+        "ci_lower": -0.26891627713692434,
+        "ci_upper": -0.2479335472800003,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      }
+    }
+  },
+  {
+    "stock": "NEE",
+    "status": "ok",
+    "n_rows": 927,
+    "train_rows": 741,
+    "test_rows": 186,
+    "max_steps_used": 120,
+    "mean_episode_reward": 47.46894233959972,
+    "std_episode_reward": 11.877146670307393,
+    "var_episode_reward": 141.06661302799398,
+    "success_rate_pct": 100.0,
+    "mean_return_pct": 13.325855964450447,
+    "std_return_pct": 0.7816242075427687,
+    "sharpe_ratio": 17.04890762971112,
+    "max_drawdown_pct": 0.0,
+    "variance_ratio_late_vs_early": 0.019290691688523355,
+    "rolling_variance_trend_slope": -15.8422578376903,
+    "stat_validation": {
+      "reward_mean_ci": {
+        "point_estimate": 47.46894233959972,
+        "ci_lower": 42.65554426738182,
+        "ci_upper": 52.91181522888112,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "reward_std_ci": {
+        "point_estimate": 11.877146670307393,
+        "ci_lower": 2.0809796129437697,
+        "ci_upper": 15.416949935550964,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "return_mean_ci": {
+        "point_estimate": 0.13325855964450448,
+        "ci_lower": 0.12980535757748776,
+        "ci_upper": 0.1365156534161188,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "one_sample_return_test": {
+        "hypothesis": "H0: mean_return <= 0, H1: mean_return > 0",
+        "observed_mean": 0.13325855964450448,
+        "p_value": 0.0001999600079984003,
+        "effect_size": 17.04890762971112,
+        "n_samples": 20
+      },
+      "benchmark_test": {
+        "observed_mean_diff": -0.11413254018107732,
+        "p_value": 0.0001999600079984003,
+        "effect_size": -5.975377090417002,
+        "n_pairs": 20
+      },
+      "benchmark_mean_diff_ci": {
+        "point_estimate": -0.11413254018107732,
+        "ci_lower": -0.1228452217169026,
+        "ci_upper": -0.10594344689385987,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      }
+    }
+  },
+  {
+    "stock": "DUK",
+    "status": "ok",
+    "n_rows": 927,
+    "train_rows": 741,
+    "test_rows": 186,
+    "max_steps_used": 120,
+    "mean_episode_reward": 4.558278708589404,
+    "std_episode_reward": 8.881784197001252e-16,
+    "var_episode_reward": 7.888609052210118e-31,
+    "success_rate_pct": 100.0,
+    "mean_return_pct": 0.09657286878205194,
+    "std_return_pct": 1.0842021724855044e-17,
+    "sharpe_ratio": 96572.86878100489,
+    "max_drawdown_pct": 0.0,
+    "variance_ratio_late_vs_early": 0.0,
+    "rolling_variance_trend_slope": 0.0,
+    "stat_validation": {
+      "reward_mean_ci": {
+        "point_estimate": 4.558278708589404,
+        "ci_lower": 4.558278708589404,
+        "ci_upper": 4.558278708589404,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "reward_std_ci": {
+        "point_estimate": 8.881784197001252e-16,
+        "ci_lower": 8.881784197001252e-16,
+        "ci_upper": 8.881784197001252e-16,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "return_mean_ci": {
+        "point_estimate": 0.0009657286878205194,
+        "ci_lower": 0.0009657286878205194,
+        "ci_upper": 0.0009657286878205194,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      },
+      "one_sample_return_test": {
+        "hypothesis": "H0: mean_return <= 0, H1: mean_return > 0",
+        "observed_mean": 0.0009657286878205194,
+        "p_value": 0.0001999600079984003,
+        "effect_size": 96572.86878100489,
+        "n_samples": 20
+      },
+      "benchmark_test": {
+        "observed_mean_diff": -0.08463667335445443,
+        "p_value": 0.0001999600079984003,
+        "effect_size": -4.2674531289554345,
+        "n_pairs": 20
+      },
+      "benchmark_mean_diff_ci": {
+        "point_estimate": -0.08463667335445443,
+        "ci_lower": -0.09337186487381002,
+        "ci_upper": -0.07599486879106053,
+        "confidence_level": 0.95,
+        "n_bootstrap": 2000
+      }
+    }
+  }
+]

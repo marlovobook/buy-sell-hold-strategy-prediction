@@ -16,7 +16,7 @@ from typing import Dict, List
 import yaml
 
 # Import your RL trainer
-from src.models.model_trainer_rl_v2_2 import ModelTrainerRL, TradingEnvRL
+from src.models.model_trainer_rl_v2_3_buyhold import ModelTrainerRL, TradingEnvRL
 
 # Set style for better visualizations
 sns.set_style("darkgrid")
@@ -182,8 +182,28 @@ def example_2_real_training_evaluation():
         episode_rewards=episode_rewards,
         episode_lengths=episode_lengths,
         episode_returns=episode_returns,
-        success_threshold=0.0
+        success_threshold=0.0,
+        # Replace this with true buy-and-hold episode returns for paper comparison.
+        benchmark_returns=episode_returns,
+        confidence_level=0.95,
+        n_bootstrap=2000,
+        n_permutations=5000,
+        random_state=42,
     )
+
+    stat = metrics.get('stat_validation', {})
+    return_ci = stat.get('return_mean_ci', {})
+    one_sample = stat.get('one_sample_return_test', {})
+
+    print("\nSTATISTICAL VALIDATION:")
+    print("-" * 70)
+    print(
+        f"Mean Return 95% CI: [{return_ci.get('ci_lower', 0.0):.4f}, "
+        f"{return_ci.get('ci_upper', 0.0):.4f}]"
+    )
+    print(f"One-sample permutation p-value (H1: mean return > 0): {one_sample.get('p_value', 1.0):.6f}")
+    print(f"Reward Variance: {metrics.get('var_episode_reward', 0.0):.4f}")
+    print(f"Variance Ratio (late/early): {metrics.get('variance_ratio_late_vs_early', 0.0):.4f}")
     
     return trainer, metrics
 
@@ -419,6 +439,7 @@ def example_5_export_metrics_report(metrics: Dict, filename: str = "rl_performan
         f.write("-" * 80 + "\n")
         f.write(f"Coefficient of Variation:    {metrics['coefficient_of_variation']:.2f}%\n")
         f.write(f"Variance Reduction:          {metrics['variance_reduction_pct']:.2f}%\n")
+        f.write(f"Variance Ratio (Late/Early): {metrics.get('variance_ratio_late_vs_early', 0.0):.4f}\n")
         f.write(f"First Half Variance:         {metrics['first_half_variance']:.2f}\n")
         f.write(f"Second Half Variance:        {metrics['second_half_variance']:.2f}\n\n")
         
@@ -429,6 +450,33 @@ def example_5_export_metrics_report(metrics: Dict, filename: str = "rl_performan
         f.write(f"Sharpe Ratio:                {metrics['sharpe_ratio']:.4f}\n")
         f.write(f"Win Rate:                    {metrics['win_rate_pct']:.2f}%\n")
         f.write(f"Max Drawdown:                {metrics['max_drawdown_pct']:.2f}%\n\n")
+
+        stat = metrics.get('stat_validation', {})
+        reward_ci = stat.get('reward_mean_ci', {})
+        return_ci = stat.get('return_mean_ci', {})
+        one_sample = stat.get('one_sample_return_test', {})
+        benchmark_test = stat.get('benchmark_test', {})
+
+        f.write("8. STATISTICAL VALIDATION\n")
+        f.write("-" * 80 + "\n")
+        f.write(
+            f"Reward Mean {int(reward_ci.get('confidence_level', 0.95) * 100)}% CI: "
+            f"[{reward_ci.get('ci_lower', 0.0):.6f}, {reward_ci.get('ci_upper', 0.0):.6f}]\n"
+        )
+        f.write(
+            f"Return Mean {int(return_ci.get('confidence_level', 0.95) * 100)}% CI: "
+            f"[{return_ci.get('ci_lower', 0.0):.6f}, {return_ci.get('ci_upper', 0.0):.6f}]\n"
+        )
+        f.write(
+            f"One-sample permutation test p-value (H1: mean return > 0): "
+            f"{one_sample.get('p_value', 1.0):.8f}\n"
+        )
+        if benchmark_test:
+            f.write(
+                f"Paired benchmark test p-value (RL vs benchmark): "
+                f"{benchmark_test.get('p_value', 1.0):.8f}\n"
+            )
+        f.write("\n")
         
         f.write("=" * 80 + "\n")
         f.write("End of Report\n")

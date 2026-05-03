@@ -1,0 +1,67 @@
+================================================================================
+DEEP REINFORCEMENT LEARNING AGENT PERFORMANCE REPORT
+================================================================================
+
+1. CUMULATIVE REWARD METRICS
+--------------------------------------------------------------------------------
+Total Cumulative Reward:     2449.69
+Mean Episode Reward:         24.50
+Std Episode Reward:          55.13
+Median Episode Reward:       28.28
+Max Episode Reward:          145.00
+Min Episode Reward:          -108.17
+
+2. AVERAGE REWARD PER STEP
+--------------------------------------------------------------------------------
+Average Reward per Step:     0.038820
+Mean Step Reward:            0.044064
+Std Step Reward:             0.115270
+
+3. SUCCESS RATE
+--------------------------------------------------------------------------------
+Success Rate:                66.00%
+Successful Episodes:         66
+Total Episodes:              100
+
+4. EPISODE LENGTH STATISTICS
+--------------------------------------------------------------------------------
+Mean Episode Length:         631 steps
+Std Episode Length:          214.92
+Max Episode Length:          997
+Min Episode Length:          235
+Total Steps:                 63104
+
+5. LEARNING CURVE METRICS
+--------------------------------------------------------------------------------
+Early Phase Mean Reward:     -26.40
+Middle Phase Mean Reward:    24.31
+Late Phase Mean Reward:      74.08
+Learning Improvement:        100.48
+Learning Rate:               380.57%
+Trend Slope:                 1.597253
+
+6. STABILITY & CONVERGENCE
+--------------------------------------------------------------------------------
+Coefficient of Variation:    225.05%
+Variance Reduction:          -0.26%
+Variance Ratio (Late/Early): 1.0026
+First Half Variance:         1454.65
+Second Half Variance:        1458.38
+
+7. PORTFOLIO PERFORMANCE
+--------------------------------------------------------------------------------
+Mean Return:                 2.45%
+Std Return:                  5.51%
+Sharpe Ratio:                0.4443
+Win Rate:                    66.00%
+Max Drawdown:                -60.87%
+
+8. STATISTICAL VALIDATION
+--------------------------------------------------------------------------------
+Reward Mean 95% CI: [14.030501, 35.044291]
+Return Mean 95% CI: [0.014160, 0.034740]
+One-sample permutation test p-value (H1: mean return > 0): 0.00019996
+
+================================================================================
+End of Report
+================================================================================
