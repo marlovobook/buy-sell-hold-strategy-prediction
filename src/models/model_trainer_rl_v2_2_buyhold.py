@@ -680,7 +680,8 @@ class ModelTrainerRL:
                                          episode_rewards: List[float] = None,
                                          episode_lengths: List[int] = None,
                                          episode_returns: List[float] = None,
-                                         success_threshold: float = 0.0) -> Dict:
+                                         success_threshold: float = 0.0,
+                                         optimizer_learning_rate: Optional[float] = None) -> Dict:
         """
         Calculate comprehensive metrics for evaluating Deep Reinforcement Learning agent performance.
         
@@ -860,6 +861,9 @@ class ModelTrainerRL:
             'sharpe_ratio': float(sharpe_ratio),
             'win_rate_pct': float(win_rate),
             'max_drawdown_pct': float(max_drawdown),
+
+            # Optimization Metrics
+            'optimizer_learning_rate': float(optimizer_learning_rate) if optimizer_learning_rate is not None else None,
         }
         
         # Log summary
