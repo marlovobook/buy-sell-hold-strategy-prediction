@@ -95,6 +95,9 @@ reinforcement_learning:
   # PPO (Proximal Policy Optimization) parameters
   ppo:
     total_timesteps: 200000
+    # Optional: write TensorBoard logs for this run (needs `pip install tensorboard`).
+    # Leave unset to skip TensorBoard; the CSV curves are written regardless.
+    # tensorboard_log: "artifacts/tb/ppo"
     learning_rate: 0.0002
     n_steps: 2048
     batch_size: 128
@@ -133,6 +136,9 @@ reinforcement_learning:
   # SAC (Soft Actor-Critic) parameters (Best Off-Policy Choice for Stocks)
   sac:
     total_timesteps: 150000
+    # curve_log_every: how often (in timesteps) a loss snapshot is taken during training
+    curve_log_every: 1000
+    # tensorboard_log: "artifacts/tb/sac"
     learning_rate: 0.0003
     buffer_size: 100000
     batch_size: 256          # SAC loves large batches

@@ -19,6 +19,8 @@ try:
     from stable_baselines3 import PPO, A2C, DDPG, TD3, SAC
     from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
     from stable_baselines3.common.noise import NormalActionNoise
+    from stable_baselines3.common.monitor import Monitor
+    from stable_baselines3.common.callbacks import BaseCallback
 except ImportError:
     raise ImportError("Please install stable-baselines3: pip install stable-baselines3[extra]")
 
@@ -232,6 +234,71 @@ class TradingEnvRL(gym.Env):
               f"Shares: {self.shares}, Total: ${self.total_asset:.2f}")
 
 
+class TrainingCurveCallback(BaseCallback):
+    """
+    Records the learning curve and the loss curve while an agent trains.
+
+    Two series are collected:
+      - episode log: reward, length and portfolio return of every finished training
+        episode, together with the timestep at which it finished. This requires the
+        environment to be wrapped in Monitor, which adds info["episode"] on episode end.
+      - loss log: a snapshot of every train/* value the Stable-Baselines3 logger holds,
+        taken every `log_every` timesteps (value/policy loss for PPO, actor/critic loss
+        for SAC).
+
+    The callback also forwards each episode to ModelTrainerRL.track_episode_metrics, so
+    that trainer.training_metrics and trainer.get_learning_curve_data() are populated.
+    """
+
+    def __init__(self, trainer: "ModelTrainerRL" = None, log_every: int = 2048, verbose: int = 0):
+        super().__init__(verbose)
+        self.trainer = trainer
+        self.log_every = max(1, int(log_every))
+        self.episode_log: List[Dict[str, float]] = []
+        self.loss_log: List[Dict[str, float]] = []
+        self._last_loss_step = 0
+
+    def _on_step(self) -> bool:
+        # 1. finished episodes (Monitor puts the summary in info["episode"])
+        for info in self.locals.get("infos", []) or []:
+            episode = info.get("episode") if isinstance(info, dict) else None
+            if not episode:
+                continue
+            record = {
+                "timestep": int(self.num_timesteps),
+                "episode_reward": float(episode.get("r", 0.0)),
+                "episode_length": int(episode.get("l", 0)),
+                "portfolio_return": float(info.get("return", 0.0)),
+            }
+            self.episode_log.append(record)
+            if self.trainer is not None:
+                self.trainer.track_episode_metrics(
+                    episode_reward=record["episode_reward"],
+                    episode_length=record["episode_length"],
+                    episode_return=record["portfolio_return"],
+                    timestep=record["timestep"],
+                )
+
+        # 2. loss snapshot
+        if self.num_timesteps - self._last_loss_step >= self.log_every:
+            self._last_loss_step = int(self.num_timesteps)
+            values = getattr(getattr(self.model, "logger", None), "name_to_value", {}) or {}
+            snapshot = {
+                key.split("/", 1)[1]: float(val)
+                for key, val in values.items()
+                if key.startswith("train/") and isinstance(val, (int, float))
+            }
+            if snapshot:
+                snapshot["timestep"] = int(self.num_timesteps)
+                self.loss_log.append(snapshot)
+
+        return True
+
+    def to_dataframes(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """Return (episode curve, loss curve) as DataFrames."""
+        return pd.DataFrame(self.episode_log), pd.DataFrame(self.loss_log)
+
+
 class ModelTrainerRL:
     """Reinforcement Learning model trainer for stock trading."""
     
@@ -244,6 +311,7 @@ class ModelTrainerRL:
         self.env_train = None
         self.env_test = None
         self.vec_norm_stats = {} # Store normalization stats
+        self.training_curves = {} # algorithm -> TrainingCurveCallback (learning / loss curves)
         
         # Metrics tracking for RL evaluation
         self.training_metrics = {
@@ -329,12 +397,14 @@ class ModelTrainerRL:
         # model.learn(total_timesteps=timesteps)
         
         # return {"model": model, "vec_env": vec_env, "algorithm": "PPO"}
-    def train_ppo(self, env: TradingEnvRL):
+    def train_ppo(self, env: TradingEnvRL, record_curves: bool = True):
         # 1. Wrap Env
-        vec_env = DummyVecEnv([lambda: env])
+        # Monitor must sit closest to the raw environment: it records the un-normalized
+        # episode reward and length that the learning curve is built from.
+        vec_env = DummyVecEnv([lambda: Monitor(env)])
         # 2. Normalize Env
         vec_env = VecNormalize(vec_env, norm_obs=True, norm_reward=True, clip_obs=10.)
-        
+
         ppo_config = self.config.get("ppo", {})
         timesteps = ppo_config.get("total_timesteps", 10000)
         # model = PPO("MlpPolicy", vec_env, verbose=1, **ppo_config)
@@ -348,18 +418,26 @@ class ModelTrainerRL:
             gae_lambda=ppo_config.get("gae_lambda", 0.95), # Generalized Advantage Estimation for variance reduction # LOWERED: Focuses on shorter-term volatility (better for active trading)
             ent_coef=ppo_config.get("ent_coef", 0.05), #Entropy: Prevents model from getting stuck (e.g., always holding cash) # INCREASED: Forces exploration (prevents getting stuck in Buy&Hold)
             clip_range=ppo_config.get("clip_range", 0.2),
+            tensorboard_log=ppo_config.get("tensorboard_log"),
             verbose=1,
         )
-        
+
         logger.info("Training PPO...")
-        
-        model.learn(total_timesteps=timesteps)
+
+        curve_cb = TrainingCurveCallback(
+            trainer=self, log_every=ppo_config.get("n_steps", 2048)
+        ) if record_curves else None
+        model.learn(total_timesteps=timesteps, callback=curve_cb)
         logger.info("Training PPO for %d timesteps", timesteps)
         # FIX: Store the environment stats so we can save them later
         self.vec_norm_stats["ppo"] = vec_env
         self.models["ppo"] = model
-        
-        return {"model": model, "vec_env": vec_env}
+        if curve_cb is not None:
+            self.training_curves["ppo"] = curve_cb
+            logger.info("Recorded %d training episodes and %d loss snapshots for PPO",
+                        len(curve_cb.episode_log), len(curve_cb.loss_log))
+
+        return {"model": model, "vec_env": vec_env, "callback": curve_cb}
     
     def train_a2c(self, env: TradingEnvRL) -> Dict:
         """Train Advantage Actor-Critic agent."""
@@ -455,20 +533,21 @@ class ModelTrainerRL:
         
         return {"model": model, "algorithm": "TD3"}
     
-    def train_sac(self, env: TradingEnvRL) -> Dict:
+    def train_sac(self, env: TradingEnvRL, record_curves: bool = True) -> Dict:
         """Train Soft Actor-Critic agent with Normalization."""
         try:
             from stable_baselines3 import SAC
             from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
         except ImportError as exc:
             raise RuntimeError("Install stable-baselines3 for SAC") from exc
-        
+
         sac_config = self.config.get("sac", {})
         timesteps = sac_config.get("total_timesteps", 10000)
-        
+
         # 1. Wrap Environment (Vectorization)
-        # SB3 algorithms expect a vectorized environment
-        vec_env = DummyVecEnv([lambda: env])
+        # SB3 algorithms expect a vectorized environment; Monitor wraps the raw env first
+        # so that episode rewards are recorded before reward normalization is applied.
+        vec_env = DummyVecEnv([lambda: Monitor(env)])
         
         # 2. Apply Normalization (CRITICAL FIX)
         # Scales observations and rewards to a standard range (e.g., -1 to 1)
@@ -484,18 +563,26 @@ class ModelTrainerRL:
             gamma=sac_config.get("gamma", 0.99),
             tau=sac_config.get("tau", 0.005),
             ent_coef=sac_config.get("ent_coef", "auto"),
+            tensorboard_log=sac_config.get("tensorboard_log"),
             verbose=1,
         )
-        
+
         logger.info("Training SAC for %d timesteps", timesteps)
-        model.learn(total_timesteps=timesteps)
-        
+        curve_cb = TrainingCurveCallback(
+            trainer=self, log_every=sac_config.get("curve_log_every", 1000)
+        ) if record_curves else None
+        model.learn(total_timesteps=timesteps, callback=curve_cb)
+
         # 3. Store Normalization Stats for Saving
         # We need to save these stats to use the model later!
         self.vec_norm_stats["sac"] = vec_env
         self.models["sac"] = model
-        
-        return {"model": model, "vec_env": vec_env, "algorithm": "SAC"}
+        if curve_cb is not None:
+            self.training_curves["sac"] = curve_cb
+            logger.info("Recorded %d training episodes and %d loss snapshots for SAC",
+                        len(curve_cb.episode_log), len(curve_cb.loss_log))
+
+        return {"model": model, "vec_env": vec_env, "algorithm": "SAC", "callback": curve_cb}
     
     def train_dqn(self, env: TradingEnvRL) -> Dict:
         """Train Deep Q-Network agent (requires discrete action space)."""
@@ -675,6 +762,101 @@ class ModelTrainerRL:
                 norm_path = os.path.join(path, f"{name}_vecnormalize.pkl")
                 norm_env.save(norm_path)
                 print(f"Saved model and normalization stats for {norm_path}")
+
+    def save_training_curves(self, path: str, tag: str = "") -> Dict[str, str]:
+        """
+        Write the recorded learning and loss curves to CSV.
+
+        Args:
+            path: output directory, created if needed.
+            tag: optional suffix, e.g. the stock symbol, used in the file names.
+
+        Returns:
+            Mapping of description -> written file path.
+        """
+        if not self.training_curves:
+            logger.warning("No training curves recorded. Train with record_curves=True first.")
+            return {}
+
+        os.makedirs(path, exist_ok=True)
+        suffix = f"_{tag}" if tag else ""
+        written = {}
+        for algo, cb in self.training_curves.items():
+            episodes_df, loss_df = cb.to_dataframes()
+            if not episodes_df.empty:
+                file_path = os.path.join(path, f"{algo}{suffix}_learning_curve.csv")
+                episodes_df.to_csv(file_path, index=False)
+                written[f"{algo}_learning_curve"] = file_path
+            if not loss_df.empty:
+                file_path = os.path.join(path, f"{algo}{suffix}_loss_curve.csv")
+                loss_df.to_csv(file_path, index=False)
+                written[f"{algo}_loss_curve"] = file_path
+
+        for key, file_path in written.items():
+            logger.info("Saved %s to %s", key, file_path)
+        return written
+
+    def plot_training_curves(self, path: Optional[str] = None, tag: str = "",
+                             smooth_window: int = 10):
+        """
+        Plot the learning curve (episode reward against timestep) next to the loss curve.
+
+        Args:
+            path: directory to save the figure in. If None the figure is only returned.
+            tag: optional suffix, e.g. the stock symbol, used in the title and file name.
+            smooth_window: window of the moving average drawn over the raw episode rewards.
+
+        Returns:
+            The matplotlib Figure, or None when nothing has been recorded.
+        """
+        if not self.training_curves:
+            logger.warning("No training curves recorded. Train with record_curves=True first.")
+            return None
+
+        import matplotlib.pyplot as plt
+
+        n_algos = len(self.training_curves)
+        fig, axes = plt.subplots(n_algos, 2, figsize=(12, 4 * n_algos), squeeze=False)
+
+        # PPO reports value/policy loss, SAC reports actor/critic loss
+        loss_columns = ["value_loss", "policy_gradient_loss", "actor_loss", "critic_loss", "loss"]
+
+        for row, (algo, cb) in enumerate(self.training_curves.items()):
+            episodes_df, loss_df = cb.to_dataframes()
+
+            ax = axes[row][0]
+            if not episodes_df.empty:
+                ax.plot(episodes_df["timestep"], episodes_df["episode_reward"],
+                        color="#9aa5b1", lw=0.9, label="Episode reward")
+                if len(episodes_df) >= smooth_window > 1:
+                    rolling = episodes_df["episode_reward"].rolling(smooth_window).mean()
+                    ax.plot(episodes_df["timestep"], rolling, color="#1f5fa8", lw=1.6,
+                            label=f"Moving average ({smooth_window})")
+                ax.legend(fontsize=8, frameon=False)
+            ax.set_title(f"{algo.upper()} learning curve {tag}".strip())
+            ax.set_xlabel("Timestep")
+            ax.set_ylabel("Episode reward")
+
+            ax = axes[row][1]
+            if not loss_df.empty:
+                for column in loss_columns:
+                    if column in loss_df.columns:
+                        ax.plot(loss_df["timestep"], loss_df[column], lw=1.3, label=column)
+                ax.legend(fontsize=8, frameon=False)
+            ax.set_title(f"{algo.upper()} loss curve {tag}".strip())
+            ax.set_xlabel("Timestep")
+            ax.set_ylabel("Loss")
+
+        fig.tight_layout()
+
+        if path:
+            os.makedirs(path, exist_ok=True)
+            suffix = f"_{tag}" if tag else ""
+            file_path = os.path.join(path, f"training_curves{suffix}.png")
+            fig.savefig(file_path, dpi=150)
+            logger.info("Saved training curve figure to %s", file_path)
+
+        return fig
 
     @staticmethod
     def _bootstrap_confidence_interval(
